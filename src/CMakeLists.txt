@@ -6,11 +6,17 @@ set(HeaderList
     "CudaVector.h"
     "CudaVector_impl.h"
     "fdtd.h"
+    "NDArray.h"
+    "NDArray_impl.h"
+    "NDVector.h"
+    "NDVector_impl.h"
+    "box.h"
 )
 
 set(SRCList
     "main.cu"
     "fdtd.cu"
+    "test.cu"
 )
 
 

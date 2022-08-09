@@ -1,6 +1,8 @@
 #pragma once
 
 #include "common.h"
+#include "typedef.h"
+#include <array>
 
 template <typename T>
 class CudaVector {
