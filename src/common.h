@@ -8,3 +8,4 @@
     #define _CK(...) <<<__VA_ARGS__>>>
 #endif
 
+#define __hostdev__ __host__ __device__

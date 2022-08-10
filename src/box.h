@@ -7,33 +7,29 @@
 #pragma once
 
 #include "common.h"
-#include <array>
-#include <initializer_list>
-#include <iostream>
-#include <tuple>
-#include <algorithm>
 #include "typedef.h"
+#include <array>
 
-template<typename T, size_t Size>
-class Array {
-public:
-    constexpr __host__ __device__ T& operator[] (size_t i) {
-        return this->_elems[i];
-    }
-
-    constexpr __host__ __device__ const T& operator[](size_t i) const {
-        return this->_elems[i];
-    }
-
-    __host__ __device__ Array& operator=(std::array<T, Size> _rhs) {
-        for (size_t i = 0; i < Size; i++) {
-            _elems[i] = _rhs[i];
-        }
-        return *this;
-    }
-
-    T _elems[Size];
-};
+//template<typename T, size_t Size>
+//class DeviceArray {
+//public:
+//    constexpr __hostdev__ T& operator[] (size_t i) {
+//        return this->_elems[i];
+//    }
+//
+//    constexpr __hostdev__ const T& operator[](size_t i) const {
+//        return this->_elems[i];
+//    }
+//
+//    __hostdev__ std::array& operator=(std::array<T, Size> _rhs) {
+//        for (size_t i = 0; i < Size; i++) {
+//            _elems[i] = _rhs[i];
+//        }
+//        return *this;
+//    }
+//
+//    T _elems[Size];
+//};
 
 template <typename T, size_t D >
 class Box {
@@ -41,9 +37,9 @@ public:
     // Attributes
     using TypeArray =  std::array<T, D>;
 
-    Array<Array<T,D>, 2 > bounds;
-    Array<T,D> & i = bounds[0];
-    Array<T,D> & e = bounds[1];
+    std::array<std::array<T,D>, 2 > bounds;
+    std::array<T,D> & i = bounds[0];
+    std::array<T,D> & e = bounds[1];
     
     // Constructors
     Box(){}
@@ -84,10 +80,10 @@ public:
     }
 
     // Methods
-    __host__ __device__ Array<T,D>& operator [] (const size_t i){
+    __host__ __device__ std::array<T,D>& operator [] (const size_t i){
         return bounds[i];
     }
-    __host__ __device__ const Array<T,D>& operator [] (const size_t i) const{
+    __host__ __device__ const std::array<T,D>& operator [] (const size_t i) const{
         return bounds[i];
     }
 

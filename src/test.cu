@@ -1,5 +1,6 @@
 #include "typedef.h"
 #include "cuda_utils.h"
+#include "DeviceNDArray.h"
 #include <iostream>
 #include <vector>
 #include <array>
@@ -70,6 +71,10 @@ void matmul() {
         std::cout << m3[i*Ny+j] << ((j==Ny-1) ? "\n" : " ");
     }}
     std::cout << std::endl;
+
+    cudaFree(m1_d);
+    cudaFree(m2_d);
+    cudaFree(m3_d);
 }
 
 
@@ -180,6 +185,7 @@ void matmul2D() {
     }}
 
     // Device
+
     CudaArray2D<real_t> m1_d {{Nx, Nc}, m1};
     CudaArray2D<real_t> m2_d {{Nc, Ny}, m2};
     CudaArray2D<real_t> m3_d {{Nx, Ny}};
@@ -204,66 +210,12 @@ void matmul2D() {
 }
 
 
-/**********************************/
-/*   VERSION 3 - Negative index   */
-/**********************************/
+/*********************************/
+/*   VERSION 3 - DeviceNDArray   */
+/*********************************/
 
-template <typename T>
-class CudaArray2D_negative {
-public:
-    CudaArray2D_negative() = default;
-    ~CudaArray2D_negative() {this->del();}
-
-    CudaArray2D_negative(const std::array<std::array<ssize_t, 2>, 2> _lims, CudaArray2D<T>& _array) {
-        this->set(_lims, _array);
-    }
-    
-    void set(const std::array<std::array<ssize_t,2>,2> _lims, CudaArray2D<T>& _array) {
-        this->del();
-        for (size_t lu  = 0; lu  < 2; lu ++)
-        for (size_t xyz = 0; xyz < 2; xyz++)
-            this->lims[lu][xyz] = lims[lu][xyz];
-        this->dev_ptr = _array.getDevicePtr();
-        this->this_ptr = newCUDA<CudaArray2D_negative>(1);
-        copyToDeviceCUDA(this->this_ptr, this, 1);
-    }
-
-    void del() {
-        if (this->dev_ptr != nullptr)
-            this->dev_ptr = nullptr;
-        if (this->this_ptr != nullptr) {
-            cudaFree(this->this_ptr);
-            this->this_ptr = nullptr;
-        }
-    }
-
-    CudaArray2D_negative* getPtr() {
-        return this->this_ptr;
-    }
-
-    const CudaArray2D_negative* getPtr() const {
-        return this->this_ptr;
-    }
-
-    __device__ T& getElem(const ssize_t i, const ssize_t j) {
-        return this->dev_ptr[i-lims[0][0]][j-lims[0][1]];
-    }
-
-    __device__ const T& getElem(const ssize_t i, const ssize_t j) const {
-        return this->dev_ptr[i-lims[0][0]][j-lims[0][1]];
-    }
-
-
-private:
-    ssize_t lims[2][2] {};
-    T** dev_ptr {nullptr};
-    CudaArray2D_negative *this_ptr {nullptr};
-};
-
-__global__ void matmul2D_negative_cuda(
-    CudaArray2D_negative<real_t>* m1,
-    CudaArray2D_negative<real_t>* m2,
-    CudaArray2D_negative<real_t>* m3,
+__global__ void matmul2D_DeviceNDArray_cuda(
+    real_t **m1, real_t **m2, real_t**m3,
     size_t x0, size_t c0, size_t y0,
     size_t x1, size_t c1, size_t y1
 ) {
@@ -271,17 +223,17 @@ __global__ void matmul2D_negative_cuda(
     ssize_t j = blockDim.y * blockIdx.y + threadIdx.y + y0;
 
     if (i < x1 && j < y1) {
-        m3->getElem(i, j) = 0;
+        m3[i][j] = 0;
         for (size_t k = c0; k < c1; k++) {
-            m3->getElem(i, j) += m1->getElem(i, k)*m2->getElem(k, j);
+            m3[i][j] += m1[i][k] * m2[k][j];
         }
     }
 }
 
-void matmul2D_negative() {
-    size_t x0 = -5, x1 = 6;
-    size_t c0 = -5, c1 = 7;
-    size_t y0 = -5, y1 = 8;
+void matmul2D_DeviceNDArray() {
+    ssize_t x0 = -5, x1 = 6;
+    ssize_t c0 = -5, c1 = 7;
+    ssize_t y0 = -5, y1 = 8;
     size_t Nx = x1-x0;
     size_t Nc = c1-c0;
     size_t Ny = y1-y0;
@@ -301,28 +253,29 @@ void matmul2D_negative() {
     }}
 
     // Device
-    CudaArray2D<real_t> m1_d {{Nx, Nc}, m1};
-    CudaArray2D<real_t> m2_d {{Nc, Ny}, m2};
-    CudaArray2D<real_t> m3_d {{Nx, Ny}};
-
-    CudaArray2D_negative<real_t> m1_d_neg {{-5, -5, 6, 7}, m1_d};
-    CudaArray2D_negative<real_t> m2_d_neg {{-5, -5, 7, 8}, m2_d};
-    CudaArray2D_negative<real_t> m3_d_neg {{-5, -5, 6, 8}, m3_d};
+    DeviceNDArray<real_t, 2> m1_d {{{x0,c0},{x1,c1}}};
+    DeviceNDArray<real_t, 2> m2_d {{{c0,y0},{c1,y1}}};
+    DeviceNDArray<real_t, 2> m3_d {{{x0,y0},{x1,y1}}};
+    m1_d.copyFromZero(m1);
+    m2_d.copyFromZero(m2);
     
     // Multiply
     dim3 block_size {10,10};
-    dim3 grid_size;
-    grid_size.x = ceilDiv(Nx, block_size.x);
-    grid_size.y = ceilDiv(Ny, block_size.y);
-    grid_size.z = 1;
+    dim3 grid_size {
+        (unsigned int) ceilDiv(Nx, block_size.x),
+        (unsigned int) ceilDiv(Ny, block_size.y),
+        (unsigned int) 1
+    };
 
-    matmul2D_negative_cuda _CK(grid_size, block_size) (
-        m1_d_neg.getPtr(), m1_d_neg.getPtr(), m1_d_neg.getPtr(),
+    matmul2D_DeviceNDArray_cuda _CK(grid_size, block_size) (
+        m1_d.getDeviceMoved(),
+        m2_d.getDeviceMoved(),
+        m3_d.getDeviceMoved(),
         x0, c0, y0, x1, c1, y1
     );
 
     // Retrieve result
-    m3_d.retrieve(m3);
+    m3_d.retrieveToZero(m3);
     
     for (size_t i = 0; i < Nx; i++) {
     for (size_t j = 0; j < Ny; j++) {
