@@ -89,14 +89,6 @@ template <typename T, size_t N>
 
 template <typename T, size_t N>
 /*inline*/ void NDVector<T,N>::rebound(const std::array<ssize_t,N>& i0, const std::array<ssize_t,N>& i1) {
-    #ifdef _DEBUG
-        for (size_t i = 0; i < N; i++)
-            Log::ASSERT(
-                i1[i] >= i0[i],
-                "Error: Bad boundaries in NDVector rebound."
-            );
-    #endif
-
     this->rebound1D(i0, i1);
         
     std::array<ssize_t,N-1> i0_down;
@@ -119,14 +111,6 @@ template <typename T, size_t N>
 /****************/
 template <typename T, size_t N>
 /*inline*/ void NDVector<T,N>::resize(const std::array<ssize_t,N>& i0, const std::array<ssize_t,N>& i1) {
-    #ifdef _DEBUG
-        for (size_t i = 0; i < N; i++)
-            Log::ASSERT(
-                i1[i] >= i0[i],
-                "Error: Bad boundaries in NDVector resize."
-            );
-    #endif
-
     ssize_t old_i0 = this->lims[0][0];
     ssize_t old_i1 = this->lims[0][1];
     NDVector old_arr = *this;

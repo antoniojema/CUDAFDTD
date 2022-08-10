@@ -45,7 +45,7 @@ template <typename T, size_t Dim>
 template <typename VecType>
 void DeviceNDArray<T, Dim>::copy(const VecType& _vec) {
     for (size_t i = 0; i < _size[0]; i++) {
-        _elems[i].copy(_vec[i + _index0[0]]);
+        _elems[i].copy(_vec[(ssize_t) i + _index0[0]]);
     }
 }
 
@@ -59,15 +59,15 @@ void DeviceNDArray<T, Dim>::copyFromZero(const VecType& _vec) {
 
 template <typename T, size_t Dim>
 template <typename VecType>
-void DeviceNDArray<T, Dim>::retrieve(VecType& _vec) {
+void DeviceNDArray<T, Dim>::retrieve(VecType& _vec) const {
     for (size_t i = 0; i < _size[0]; i++) {
-        _elems[i].retrieve(_vec[i + _index0[0]]);
+        _elems[i].retrieve(_vec[(ssize_t) i + _index0[0]]);
     }
 }
 
 template <typename T, size_t Dim>
 template <typename VecType>
-void DeviceNDArray<T, Dim>::retrieveToZero(VecType& _vec) {
+void DeviceNDArray<T, Dim>::retrieveToZero(VecType& _vec) const {
     for (size_t i = 0; i < _size[0]; i++) {
         _elems[i].retrieveToZero(_vec[i]);
     }
@@ -85,6 +85,7 @@ Ptr<T,Dim>::type DeviceNDArray<T, Dim>::getDeviceMoved() {
     }
     return _device_ptr - _index0[0];
 }
+
 
 
 /**************************/
@@ -129,7 +130,7 @@ void DeviceNDArray<T, 1>::copyFromZero(const VecType& _vec) {
 
 template <typename T>
 template <typename VecType>
-void DeviceNDArray<T, 1>::retrieve(VecType& _vec) {
+void DeviceNDArray<T, 1>::retrieve(VecType& _vec) const {
     if (_device_ptr != nullptr) {
         copyToHostCUDA(&_vec[_index0], _device_ptr, _size);
     }
@@ -137,7 +138,7 @@ void DeviceNDArray<T, 1>::retrieve(VecType& _vec) {
 
 template <typename T>
 template <typename VecType>
-void DeviceNDArray<T, 1>::retrieveToZero(VecType& _vec) {
+void DeviceNDArray<T, 1>::retrieveToZero(VecType& _vec) const {
     if (_device_ptr != nullptr) {
         copyToHostCUDA(&_vec[0], _device_ptr, _size);
     }
@@ -145,5 +146,10 @@ void DeviceNDArray<T, 1>::retrieveToZero(VecType& _vec) {
 
 template <typename T>
 T* DeviceNDArray<T, 1>::getDeviceMoved() {
+    return (_device_ptr != nullptr) ? (_device_ptr - _index0) : nullptr;
+};
+
+template <typename T>
+const T* DeviceNDArray<T, 1>::getDeviceMoved() const {
     return (_device_ptr != nullptr) ? (_device_ptr - _index0) : nullptr;
 };

@@ -10,41 +10,52 @@
 #include "typedef.h"
 #include <array>
 
-//template<typename T, size_t Size>
-//class DeviceArray {
-//public:
-//    constexpr __hostdev__ T& operator[] (size_t i) {
-//        return this->_elems[i];
-//    }
-//
-//    constexpr __hostdev__ const T& operator[](size_t i) const {
-//        return this->_elems[i];
-//    }
-//
-//    __hostdev__ std::array& operator=(std::array<T, Size> _rhs) {
-//        for (size_t i = 0; i < Size; i++) {
-//            _elems[i] = _rhs[i];
-//        }
-//        return *this;
-//    }
-//
-//    T _elems[Size];
-//};
+template<typename T, size_t Size>
+class Array {
+public:
+    constexpr __hostdev__ T& operator[] (size_t i) {
+        return this->_elems[i];
+    }
+
+    constexpr __hostdev__ const T& operator[](size_t i) const {
+        return this->_elems[i];
+    }
+
+    __hostdev__ Array& operator=(Array<T, Size> _rhs) {
+        for (size_t i = 0; i < Size; i++) {
+            _elems[i] = _rhs[i];
+        }
+        return *this;
+    }
+
+    __hostdev__ Array& operator=(std::array<T, Size> _rhs) {
+        for (size_t i = 0; i < Size; i++) {
+            _elems[i] = _rhs[i];
+        }
+        return *this;
+    }
+
+    operator std::array<T, Size>() const {
+        return std::array<T, Size>{_elems};
+    }
+
+    T _elems[Size];
+};
 
 template <typename T, size_t D >
 class Box {
 public:
     // Attributes
-    using TypeArray =  std::array<T, D>;
+    using TypeArray =  Array<T, D>;
 
-    std::array<std::array<T,D>, 2 > bounds;
-    std::array<T,D> & i = bounds[0];
-    std::array<T,D> & e = bounds[1];
+    Array<Array<T,D>, 2 > bounds;
+    Array<T,D> & i = bounds[0];
+    Array<T,D> & e = bounds[1];
     
     // Constructors
     Box(){}
 
-    Box (const std::array<T,D> &_i, const std::array<T,D>  &_e ) {
+    Box (const Array<T,D> &_i, const Array<T,D>  &_e ) {
         this->i = _i; this->e = _e;
     }
     
@@ -80,14 +91,14 @@ public:
     }
 
     // Methods
-    __host__ __device__ std::array<T,D>& operator [] (const size_t i){
+    __host__ __device__ Array<T,D>& operator [] (const size_t i){
         return bounds[i];
     }
-    __host__ __device__ const std::array<T,D>& operator [] (const size_t i) const{
+    __host__ __device__ const Array<T,D>& operator [] (const size_t i) const{
         return bounds[i];
     }
 
-    bool contains(const std::array<T, D> point, bool exclude_end = false) const {
+    bool contains(const Array<T, D> point, bool exclude_end = false) const {
         T sub = (exclude_end) ? 1 : 0;
         for (size_t dir = 0; dir < D; dir++)
             if (point[dir] < this->i[dir] || this->e[dir]-sub < point[dir])

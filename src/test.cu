@@ -1,6 +1,7 @@
 #include "typedef.h"
 #include "cuda_utils.h"
 #include "DeviceNDArray.h"
+#include "NDArray.h"
 #include <iostream>
 #include <vector>
 #include <array>
@@ -280,6 +281,65 @@ void matmul2D_DeviceNDArray() {
     for (size_t i = 0; i < Nx; i++) {
     for (size_t j = 0; j < Ny; j++) {
         std::cout << m3[i][j] << ((j==Ny-1) ? "\n" : " ");
+    }}
+    std::cout << std::endl;
+}
+
+
+/********************************************/
+/*   VERSION 3 - DeviceNDArray w/ NDArray   */
+/********************************************/
+
+void matmul2D_DeviceNDArray_NDArray() {
+    ssize_t x0 = -5, x1 = 6;
+    ssize_t c0 = -3, c1 = 9;
+    ssize_t y0 = -8, y1 = 5;
+    size_t Nx = x1-x0;
+    size_t Nc = c1-c0;
+    size_t Ny = y1-y0;
+
+    NDArray<real_t,2> m1 {{x0,c0}, {x1,c1}};
+    NDArray<real_t,2> m2 {{c0,y0}, {c1,y1}};
+    NDArray<real_t,2> m3 {{x0,y0}, {x1,y1}};
+
+    for (ssize_t i = x0; i < x1; i++) {
+    for (ssize_t j = c0; j < c1; j++) {
+        m1[i][j] = i-x0;
+    }}
+
+    for (ssize_t i = c0; i < c1; i++) {
+    for (ssize_t j = y0; j < y1; j++) {
+        m2[i][j] = j-y0;
+    }}
+
+    // Device
+    DeviceNDArray<real_t, 2> m1_d {{{x0,c0},{x1,c1}}};
+    DeviceNDArray<real_t, 2> m2_d {{{c0,y0},{c1,y1}}};
+    DeviceNDArray<real_t, 2> m3_d {{{x0,y0},{x1,y1}}};
+    m1_d.copy(m1);
+    m2_d.copy(m2);
+    
+    // Multiply
+    dim3 block_size {10,10};
+    dim3 grid_size {
+        (unsigned int) ceilDiv(Nx, block_size.x),
+        (unsigned int) ceilDiv(Ny, block_size.y),
+        (unsigned int) 1
+    };
+
+    matmul2D_DeviceNDArray_cuda _CK(grid_size, block_size) (
+        m1_d.getDeviceMoved(),
+        m2_d.getDeviceMoved(),
+        m3_d.getDeviceMoved(),
+        x0, c0, y0, x1, c1, y1
+    );
+
+    // Retrieve result
+    m3_d.retrieve(m3);
+    
+    for (ssize_t i = x0; i < x1; i++) {
+    for (ssize_t j = y0; j < y1; j++) {
+        std::cout << m3[i][j] << ((j==y1-1) ? "\n" : " ");
     }}
     std::cout << std::endl;
 }

@@ -8,6 +8,16 @@
 
 
 template <typename T, size_t Lvl>
+struct ConstPtr {
+    using type = ConstPtr<T,Lvl-1>::type*const;
+};
+
+template <typename T>
+struct ConstPtr<T,0> {
+    using type = const T;
+};
+
+template <typename T, size_t Lvl>
 struct Ptr {
     using type = Ptr<T,Lvl-1>::type*;
 };
@@ -34,16 +44,17 @@ public:
     template<typename VecType> void copy(const VecType& _vec);
     template<typename VecType> void copyFromZero(const VecType& _vec);
     
-    template<typename VecType> void retrieve(VecType& _vec);
-    template<typename VecType> void retrieveToZero(VecType& _vec);
+    template<typename VecType> void retrieve(VecType& _vec) const;
+    template<typename VecType> void retrieveToZero(VecType& _vec) const;
 
     Ptr<T,Dim>::type getDeviceMoved();
+    ConstPtr<T,Dim-1>::type* getDeviceMoved() const;
 
 private:
     std::array<size_t,Dim> _size {0};
     std::array<ssize_t,Dim> _index0 {0};
     std::vector<elem_type> _elems {};
-    Ptr<T,Dim>::type _device_ptr;
+    mutable Ptr<T,Dim>::type _device_ptr;
 };
 
 
@@ -63,15 +74,16 @@ public:
     template<typename VecType> void copy(const VecType& _vec);
     template<typename VecType> void copyFromZero(const VecType& _vec);
     
-    template<typename VecType> void retrieve(VecType& _vec);
-    template<typename VecType> void retrieveToZero(VecType& _vec);
+    template<typename VecType> void retrieve(VecType& _vec) const;
+    template<typename VecType> void retrieveToZero(VecType& _vec) const;
 
     T* getDeviceMoved();
+    const T* getDeviceMoved() const;
 
 private:
     size_t _size {0};
     ssize_t _index0 {0};
-    T *_device_ptr {nullptr};
+    mutable T *_device_ptr {nullptr};
 };
 
 #include "DeviceNDArray_impl.h"
