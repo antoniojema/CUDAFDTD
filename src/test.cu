@@ -216,15 +216,15 @@ void matmul2D() {
 
 __global__ void matmul2D_DeviceNDArray_cuda(
     real_t **m1, real_t **m2, real_t**m3,
-    size_t x0, size_t c0, size_t y0,
-    size_t x1, size_t c1, size_t y1
+    ssize_t x0, ssize_t c0, ssize_t y0,
+    ssize_t x1, ssize_t c1, ssize_t y1
 ) {
     ssize_t i = blockDim.x * blockIdx.x + threadIdx.x + x0;
     ssize_t j = blockDim.y * blockIdx.y + threadIdx.y + y0;
 
     if (i < x1 && j < y1) {
         m3[i][j] = 0;
-        for (size_t k = c0; k < c1; k++) {
+        for (ssize_t k = c0; k < c1; k++) {
             m3[i][j] += m1[i][k] * m2[k][j];
         }
     }
@@ -232,8 +232,8 @@ __global__ void matmul2D_DeviceNDArray_cuda(
 
 void matmul2D_DeviceNDArray() {
     ssize_t x0 = -5, x1 = 6;
-    ssize_t c0 = -5, c1 = 7;
-    ssize_t y0 = -5, y1 = 8;
+    ssize_t c0 = -3, c1 = 9;
+    ssize_t y0 = -8, y1 = 5;
     size_t Nx = x1-x0;
     size_t Nc = c1-c0;
     size_t Ny = y1-y0;
