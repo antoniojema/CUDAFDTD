@@ -36,7 +36,9 @@ public:
     }
 
     operator std::array<T, Size>() const {
-        return std::array<T, Size>{_elems};
+        std::array<T, Size> arr;
+        for (size_t i = 0; i < Size; i++) arr[i] = _elems[i];
+        return arr;
     }
 
     T _elems[Size];
@@ -91,10 +93,10 @@ public:
     }
 
     // Methods
-    __host__ __device__ Array<T,D>& operator [] (const size_t i){
+    constexpr __host__ __device__ Array<T,D>& operator [] (const size_t i){
         return bounds[i];
     }
-    __host__ __device__ const Array<T,D>& operator [] (const size_t i) const{
+    constexpr __host__ __device__ const Array<T,D>& operator [] (const size_t i) const{
         return bounds[i];
     }
 

@@ -36,9 +36,11 @@ public:
     
     DeviceNDArray() = default;
     DeviceNDArray(const Box<ssize_t,Dim>& _lims) {this->set(_lims);}
+    DeviceNDArray(const Array<ssize_t,Dim>& _i0, const Array<ssize_t,Dim>& _i1) {this->set({_i0, _i1});}
     ~DeviceNDArray();
     
     void set(const Box<ssize_t,Dim>& _lims);
+    void set(const Array<ssize_t,Dim>& _i0, const Array<ssize_t,Dim>& _i1) {this->set({_i0, _i1});}
     void free();
     
     template<typename VecType> void copy(const VecType& _vec);

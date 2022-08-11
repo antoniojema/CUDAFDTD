@@ -343,3 +343,149 @@ void matmul2D_DeviceNDArray_NDArray() {
     }}
     std::cout << std::endl;
 }
+
+
+/*********************/
+/*   2-D array sum   */
+/*********************/
+
+__global__ void sum2DArray_cuda(
+    real_t **m1, real_t **m2, real_t**m3,
+    ssize_t x0, ssize_t y0,
+    ssize_t x1, ssize_t y1
+) {
+    ssize_t i = blockDim.x * blockIdx.x + threadIdx.x + x0;
+    ssize_t j = blockDim.y * blockIdx.y + threadIdx.y + y0;
+
+    if (i < x1 && j < y1) {
+        m3[i][j] = m1[i][j] + m2[i][j];
+    }
+}
+
+void sum2DArray() {
+    ssize_t x0 = -5, x1 = 6;
+    ssize_t y0 = -8, y1 = 5;
+    size_t Nx = x1-x0;
+    size_t Ny = y1-y0;
+
+    NDArray<real_t,2> m1 {{x0,y0}, {x1,y1}};
+    NDArray<real_t,2> m2 {{x0,y0}, {x1,y1}};
+    NDArray<real_t,2> m3 {{x0,y0}, {x1,y1}};
+
+    for (ssize_t i = x0; i < x1; i++)
+    for (ssize_t j = y0; j < y1; j++) {
+        m1[i][j] = i-x0;
+    }
+    
+    for (ssize_t i = x0; i < x1; i++)
+    for (ssize_t j = y0; j < y1; j++) {
+        m2[i][j] = j-y0;
+    }
+
+    // Device
+    DeviceNDArray<real_t, 2> m1_d {{{x0,y0}, {x1,y1}}};
+    DeviceNDArray<real_t, 2> m2_d {{{x0,y0}, {x1,y1}}};
+    DeviceNDArray<real_t, 2> m3_d {{{x0,y0}, {x1,y1}}};
+    m1_d.copy(m1);
+    m2_d.copy(m2);
+    
+    // Multiply
+    dim3 block_size {10,10,10};
+    dim3 grid_size {
+        (unsigned int) ceilDiv(Nx, block_size.x),
+        (unsigned int) ceilDiv(Ny, block_size.y)
+    };
+
+    sum2DArray_cuda _CK(grid_size, block_size) (
+        m1_d.getDeviceMoved(),
+        m2_d.getDeviceMoved(),
+        m3_d.getDeviceMoved(),
+        x0, y0, x1, y1
+    );
+
+    // Retrieve result
+    m3_d.retrieve(m3);
+    
+    for (ssize_t i = x0; i < x1; i++)
+    for (ssize_t j = y0; j < y1; j++) {
+        std::cout << m3[i][j] << ((j==y1-1) ? "\n" : " ");
+    }
+    std::cout << std::endl;
+}
+
+
+/*********************/
+/*   3-D array sum   */
+/*********************/
+
+__global__ void sum3DArray_cuda(
+    real_t ***m1, real_t ***m2, real_t***m3,
+    ssize_t x0, ssize_t y0, ssize_t z0,
+    ssize_t x1, ssize_t y1, ssize_t z1
+) {
+    ssize_t i = blockDim.x * blockIdx.x + threadIdx.x + x0;
+    ssize_t j = blockDim.y * blockIdx.y + threadIdx.y + y0;
+    ssize_t k = blockDim.z * blockIdx.z + threadIdx.z + z0;
+
+    if (i < x1 && j < y1 && k < z1) {
+        m3[i][j][k] = m1[i][j][k] + m2[i][j][k];
+    }
+}
+
+void sum3DArray() {
+    ssize_t x0 = -5, x1 = 6;
+    ssize_t y0 = -8, y1 = 5;
+    ssize_t z0 =  2, z1 = 12;
+    size_t Nx = x1-x0;
+    size_t Ny = y1-y0;
+    size_t Nz = z1-z0;
+
+    NDArray<real_t,3> m1 {{x0,y0,z0}, {x1,y1,z1}};
+    NDArray<real_t,3> m2 {{x0,y0,z0}, {x1,y1,z1}};
+    NDArray<real_t,3> m3 {{x0,y0,z0}, {x1,y1,z1}};
+
+    for (ssize_t i = x0; i < x1; i++)
+    for (ssize_t j = y0; j < y1; j++)
+    for (ssize_t k = z0; k < z1; k++) {
+        m1[i][j][k] = j-y0;
+    }
+    
+    for (ssize_t i = x0; i < x1; i++)
+    for (ssize_t j = y0; j < y1; j++)
+    for (ssize_t k = z0; k < z1; k++) {
+        m2[i][j][k] = k-z0;
+    }
+
+    // Device
+    DeviceNDArray<real_t, 3> m1_d {{{x0,y0,z0}, {x1,y1,z1}}};
+    DeviceNDArray<real_t, 3> m2_d {{{x0,y0,z0}, {x1,y1,z1}}};
+    DeviceNDArray<real_t, 3> m3_d {{{x0,y0,z0}, {x1,y1,z1}}};
+    m1_d.copy(m1);
+    m2_d.copy(m2);
+    
+    // Multiply
+    dim3 block_size {10,10,10};
+    dim3 grid_size {
+        (unsigned int) ceilDiv(Nx, block_size.x),
+        (unsigned int) ceilDiv(Ny, block_size.y),
+        (unsigned int) ceilDiv(Nz, block_size.z)
+    };
+
+    sum3DArray_cuda _CK(grid_size, block_size) (
+        m1_d.getDeviceMoved(),
+        m2_d.getDeviceMoved(),
+        m3_d.getDeviceMoved(),
+        x0, y0, z0, x1, y1, z1
+    );
+
+    // Retrieve result
+    m3_d.retrieve(m3);
+    
+    for (ssize_t i = x0; i < x1; i++)
+    for (ssize_t j = y0; j < y1; j++)
+    for (ssize_t k = z0; k < z1; k++) {
+        std::cout << m3[i][j][k] << ((k==z1-1) ? ((j==y1-1) ? "\n\n" : "\n") : " ");
+    }
+    std::cout << std::endl;
+}
+
